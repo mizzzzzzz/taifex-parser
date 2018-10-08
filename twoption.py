@@ -24,14 +24,14 @@ class TWOptionParser():
 
 	def start(self):
 		self.prepareData()
-		#self.postDailyOption()
+		self.postDailyOption()
 
 	def prepareData(self):
-		#self.getMarketCode()
+		self.getMarketCode()
 		self.getCaptcha()
-		#self.getCommodityList()
-		#self.getSettleMonth()
-		#self.getType()
+		self.getCommodityList()
+		self.getSettleMonth()
+		self.getType()
 
 	def getCaptcha(self):
 		res = requests.get('http://www.taifex.com.tw/cht/captcha', stream=True)
@@ -75,7 +75,7 @@ class TWOptionParser():
 				print(index, ": ", code)
 
 		while self.selectedCode == '':
-			self.selectedCode = input("交易時段: ")
+			self.selectedCode = input("MarketCode: ")
 
 	def getCommodityList(self):
 		self.printBreakLine()
@@ -95,7 +95,7 @@ class TWOptionParser():
 		for com in res.json()['commodity2List']:
 			print(com['FDAILYR_KIND_ID'], com['FDAILYR_PROD_SUBTYPE'], com['FDAILYR_NAME'])
 		
-		input_com = input("契約: ")
+		input_com = input("Commodity: ")
 		if any(input_com == com['FDAILYR_KIND_ID'] for com in res.json()['commodity2List']):
 			self.selectedCommidity = 'STO'
 			self.selectedCommidity2 = input_com
@@ -119,7 +119,7 @@ class TWOptionParser():
 		for setMon in res.json()['setMonList']:
 			print(setMon['FDAILYR_SETTLE_MONTH'])
 			
-		self.selectedSettleMonth = input("到期月份(週別): ")
+		self.selectedSettleMonth = input("Settle Month: ")
 
 	def getType(self):
 		self.printBreakLine()
@@ -138,7 +138,7 @@ class TWOptionParser():
 		for typeId in res.json()['typeList']:
 			print(typeId['FDAILYR_PC_CODE'])
 			
-		self.selectedType = input("買/賣權: ")
+		self.selectedType = input("Type: ")
 
 	def postDailyOption(self):
 		self.printBreakLine()
@@ -170,12 +170,12 @@ class TWOptionParser():
 		#print(res.text)
 
 	def printCurrentSetting(self):
-		print('交易時段: ', self.selectedCode)
-		print('契約: ', self.selectedCommidity)
+		print('MarketCode: ', self.selectedCode)
+		print('Commodity: ', self.selectedCommidity)
 		if self.selectedCommidity == 'STO':
-			print('契約2: ', self.selectedCommidity2)
-		print('到期月份(週別): ', self.selectedSettleMonth)
-		print('買/賣權: ', self.selectedType)
+			print('Commodity2: ', self.selectedCommidity2)
+		print('Settle Month: ', self.selectedSettleMonth)
+		print('Type: ', self.selectedType)
 		print('Captcha: ', self.captcha)
 		
 	def printBreakLine(self):
