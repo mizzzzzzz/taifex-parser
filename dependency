@@ -1,0 +1,11 @@
+requests
+bs4
+pandas
+Pillow
+opencv-python
+keras
+tensorflow
+scikit-image
+matplotlib
+sklearn
+rfc6266
