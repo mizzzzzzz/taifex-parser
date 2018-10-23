@@ -200,7 +200,7 @@ class TWOptionParser():
             'settlemon': self.SettleMonth,
             'totalpage': ''
         }
-        #print(payload)
+
         res = self.session.post(self.TargetURL, data=payload, headers=self.header, cookies=self.cookies)
         
         if res.status_code != requests.codes.ok:
@@ -224,14 +224,14 @@ class TWOptionParser():
             'queryDateAh': self.QueryDateAh,
             'settlemon': self.SettleMonth
         }
-        #print(payload)
+
         res = self.session.post(self.DownURL, data=payload, headers=self.header, cookies=self.cookies)
         
         if res.status_code != requests.codes.ok:
             raise Exception("Post Download Failed")
 
         if res.headers.get('Content-Disposition') == None:
-            raise Exception("Download no content")
+            raise Exception("Download no content", self.Captcha)
 
         fileName = rfc6266.parse_requests_response(res).filename_unsafe
 
