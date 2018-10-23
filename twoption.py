@@ -200,7 +200,7 @@ class TWOptionParser():
             'settlemon': self.SettleMonth,
             'totalpage': ''
         }
-        print(payload)
+        #print(payload)
         res = self.session.post(self.TargetURL, data=payload, headers=self.header, cookies=self.cookies)
         
         if res.status_code != requests.codes.ok:
@@ -224,7 +224,7 @@ class TWOptionParser():
             'queryDateAh': self.QueryDateAh,
             'settlemon': self.SettleMonth
         }
-        print(payload)
+        #print(payload)
         res = self.session.post(self.DownURL, data=payload, headers=self.header, cookies=self.cookies)
         
         if res.status_code != requests.codes.ok:
@@ -239,7 +239,6 @@ class TWOptionParser():
             for chunk in res.iter_content(256):
                 fd.write(chunk)
 
-        
     def printBreakLine(self):
         print('=================================')
         
