@@ -1,10 +1,12 @@
 import rfc6266
 import requests
 import shutil
+import datetime
 from bs4 import BeautifulSoup
 import pandas as pd
 import os
-import time
+
+from urllib.request import urlretrieve
 
 from PIL import Image
 import cv2
@@ -12,10 +14,7 @@ import cv2
 import captchaSolver
 
 class TWOptionParser():
-    
     def __init__(self):
-        print('Parse TW Option')
-        self.directory = './twoption/'
         self.TargetURL = 'http://www.taifex.com.tw/cht/3/dailyOptions'
         self.DownURL = 'http://www.taifex.com.tw/cht/3/dailyOptionsDown'
         self.MarketCode = ''
@@ -27,22 +26,25 @@ class TWOptionParser():
         self.QueryDate = ''
         self.QueryDateAh = ''
         self.solver = captchaSolver.CaptchaSolver('Captcha_model.hdf5')
-        self.createFolder()
 
-    def createFolder(self):
-        if not os.path.exists(self.directory):
-            os.makedirs(self.directory)
-
-    def auto(self):
-        start_time = time.time()
+    def start(self):
         self.getSession()
-        self.getQueryDate()
-        self.getMarketCode()
-        print('\tDone!')
-        print("Elapsed time:", time.time() - start_time, "seconds")
+        self.prepareData()
+        #self.mockData()
+        self.postDailyOption()
+        self.postDownloadCsv()
+
+    def mockData(self):
+        self.MarketCode = '0'
+        self.Commodity = 'STO'
+        self.Commodity2 = 'OOO'
+        self.SettleMonth = '201811'
+        self.Type = 'C'
+        self.QueryDate = '20181023'
+        self.QueryDateAh = '20181023'
+        self.getCaptcha()
 
     def getSession(self):
-        print('\tEstablish session')
         self.session = requests.session()
         self.header = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -57,7 +59,17 @@ class TWOptionParser():
         }
         self.getCaptcha()
 
+
+    def prepareData(self):
+        self.getQueryDate()
+        self.getMarketCode()
+        self.getCommodityList()
+        self.getSettleMonth()
+        self.getType()
+
     def getQueryDate(self):
+        self.printBreakLine()
+        
         res = self.session.get(self.TargetURL, headers=self.header)
 
         if res.status_code != requests.codes.ok:
@@ -68,6 +80,8 @@ class TWOptionParser():
         self.QueryDateAh = soup.find(id="queryDateAh").get('value')
 
     def getMarketCode(self):
+        self.printBreakLine()
+
         res = self.session.get(self.TargetURL, headers=self.header)
 
         if res.status_code != requests.codes.ok:
@@ -78,10 +92,14 @@ class TWOptionParser():
         
         for index, code in enumerate(marketCode):
             if index != 0:
-                self.MarketCode = index - 1
-                self.getCommodityList()
+                print(index - 1, ": ", code)
+
+        while self.MarketCode == '':
+            self.MarketCode = input("MarketCode: ")
 
     def getCommodityList(self):
+        self.printBreakLine()
+        
         payload = {
             'queryDate': str(self.QueryDate if self.MarketCode == '0' else self.QueryDateAh),
             'marketcode': 0
@@ -90,20 +108,23 @@ class TWOptionParser():
         res = self.session.get('http://www.taifex.com.tw/cht/3/getFcmOptcontract.do', params=payload, headers=self.header)
         
         if res.status_code != requests.codes.ok:
-            raise Exception("Get Commodity List Failed")
-
-
-        for com in res.json()['commodityList']:
-            self.Commodity = com['FDAILYR_KIND_ID']
-            self.Commodity2 = ''
-            self.getSettleMonth()
-
+                raise Exception("Get Commodity List Failed")
+                for com in res.json()['commodityList']:
+                        print(com['FDAILYR_KIND_ID'], com['FDAILYR_PROD_SUBTYPE'], com['FDAILYR_NAME'])
         for com in res.json()['commodity2List']:
+            print(com['FDAILYR_KIND_ID'], com['FDAILYR_PROD_SUBTYPE'], com['FDAILYR_NAME'])
+        
+        input_com = input("Commodity: ")
+        if any(input_com == com['FDAILYR_KIND_ID'] for com in res.json()['commodity2List']):
             self.Commodity = 'STO'
-            self.Commodity2 = com['FDAILYR_KIND_ID']
-            self.getSettleMonth()
+            self.Commodity2 = input_com
+        else:
+            self.Commodity = input_com
+            self.Commodity2 = ''
 
     def getSettleMonth(self):
+        self.printBreakLine()
+
         payload = {
             'queryDate': str(self.QueryDate if self.MarketCode == '1' else self.QueryDateAh),
             'marketcode': 0,
@@ -116,11 +137,13 @@ class TWOptionParser():
             raise Exception("Get Settle Month Failed")
 
         for setMon in res.json()['setMonList']:
-            self.SettleMonth = setMon['FDAILYR_SETTLE_MONTH']
-            self.getType()
-
+            print(setMon['FDAILYR_SETTLE_MONTH'])
+            
+        self.SettleMonth = input("Settle Month: ")
 
     def getType(self):
+        self.printBreakLine()
+
         payload = {
             'queryDate': str(self.QueryDate if self.MarketCode == '1' else self.QueryDateAh),
             'marketcode': 0,
@@ -132,24 +155,23 @@ class TWOptionParser():
         if res.status_code != requests.codes.ok:
             raise Exception("Get Type Failed")
         
-        for typeId in res.json()['typeList']:            
-            self.Type = typeId['FDAILYR_PC_CODE']
-            self.postDailyOption()
-            self.postDownloadCsv()
+        for typeId in res.json()['typeList']:
+            print(typeId['FDAILYR_PC_CODE'])
+            
+        self.Type = input("Type: ")
 
     def getCaptcha(self):
-        print('\tGet Captcha...')
         res = self.session.get('http://www.taifex.com.tw/cht/captcha', stream=True, headers=self.header)
 
         if res.status_code != requests.codes.ok:
             raise Exception("Get Captcha Failed")
         
-        with open(self.directory + 'Captcha.jpg', 'wb') as out_file:
+        with open('Captcha.jpg', 'wb') as out_file:
             res.raw.decode_content = True
             shutil.copyfileobj(res.raw, out_file)
 
         self.cookies = res.cookies
-        self.Captcha = self.resolveCaptcha(self.directory + 'Captcha.jpg')
+        self.Captcha = self.resolveCaptcha('Captcha.jpg')
         #img = cv2.imread('Captcha.jpg')
         #cv2.imshow('image', img)
         # print(self.Captcha)    
@@ -159,21 +181,23 @@ class TWOptionParser():
         return self.solver.solve(imagePathStr)
 
     def postDailyOption(self):
+        self.printBreakLine()
+
         payload = {
-            'captcha': str(self.Captcha),
-            'commodity_id2t': str(self.Commodity2),
-            'commodity_idt': str(self.Commodity),
-            'commodityId': str(self.Commodity),
-            'commodityId2': str(self.Commodity2),
+            'captcha': self.Captcha,
+            'commodity_id2t': self.Commodity2,
+            'commodity_idt': self.Commodity,
+            'commodityId': self.Commodity,
+            'commodityId2': self.Commodity2,
             'curpage': '',
             'doQuery': '1',
             'doQueryPage': '',
-            'marketcode': str(self.MarketCode),
-            'MarketCode': str(self.MarketCode),
-            'pccode': str(self.Type),
-            'queryDate': str(self.QueryDate),
-            'queryDateAh': str(self.QueryDateAh),
-            'settlemon': str(self.SettleMonth),
+            'marketcode': self.MarketCode,
+            'MarketCode': self.MarketCode,
+            'pccode': self.Type,
+            'queryDate': self.QueryDate,
+            'queryDateAh': self.QueryDateAh,
+            'settlemon': self.SettleMonth,
             'totalpage': ''
         }
 
@@ -183,23 +207,22 @@ class TWOptionParser():
             raise Exception("Post Option Failed")
 
     def postDownloadCsv(self):
-        print('\tStart Download...')
         payload = {
             'captcha': '',
-            'commodity_id2t': str(self.Commodity2),
-            'commodity_idt': str(self.Commodity),
-            'commodityId': str(self.Commodity),
-            'commodityId2': str(self.Commodity2),
+            'commodity_id2t': self.Commodity2,
+            'commodity_idt': self.Commodity,
+            'commodityId': self.Commodity,
+            'commodityId2': self.Commodity2,
             'curpage': '1',
+            'totalpage': '1',
             'doQuery': '1',
             'doQueryPage': '',
-            'marketcode': str(self.MarketCode),
-            'MarketCode': str(self.MarketCode),
-            'pccode': str(self.Type),
-            'queryDate': str(self.QueryDate),
-            'queryDateAh': str(self.QueryDateAh),
-            'settlemon': str(self.SettleMonth),
-            'totalpage': ''
+            'marketcode': self.MarketCode,
+            'MarketCode': self.MarketCode,
+            'pccode': self.Type,
+            'queryDate': self.QueryDate,
+            'queryDateAh': self.QueryDateAh,
+            'settlemon': self.SettleMonth
         }
 
         res = self.session.post(self.DownURL, data=payload, headers=self.header, cookies=self.cookies)
@@ -212,16 +235,14 @@ class TWOptionParser():
 
         fileName = rfc6266.parse_requests_response(res).filename_unsafe
 
-        with open(self.directory + fileName, 'wb') as fd:
+        with open(fileName, 'wb') as fd:
             for chunk in res.iter_content(256):
                 fd.write(chunk)
 
     def printBreakLine(self):
         print('=================================')
         
-def main():
+def main():  
     parser = TWOptionParser()
-    parser.auto()
-
-if __name__ == '__main__':
-    main()
+    parser.start()
+main()
