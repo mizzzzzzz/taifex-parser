@@ -207,7 +207,7 @@ class TWOptionParser():
             raise Exception("Post Option Failed")
 
     def postDownloadCsv(self):
-	    print('.', end='')
+        print('.', end='')
         payload = {
             'captcha': '',
             'commodity_id2t': self.Commodity2,
