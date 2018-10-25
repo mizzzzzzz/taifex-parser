@@ -18,11 +18,6 @@ class TWOptionParser():
         self.directory = './twoption/'
         self.TargetURL = 'http://www.taifex.com.tw/cht/3/dailyOptions'
         self.DownURL = 'http://www.taifex.com.tw/cht/3/dailyOptionsDown'
-        self.MarketCode = ''
-        self.Commodity = ''
-        self.Commodity2 = ''
-        self.SettleMonth = ''
-        self.Type = ''
         self.Captcha = ''
         self.QueryDate = ''
         self.QueryDateAh = ''
@@ -77,12 +72,11 @@ class TWOptionParser():
         
         for index, code in enumerate(marketCode):
             if index != 0:
-                self.MarketCode = index - 1
-                self.getCommodityList()
+                self.getCommodityList(index - 1)
 
-    def getCommodityList(self):
+    def getCommodityList(self, marketCode):
         payload = {
-            'queryDate': str(self.QueryDate if self.MarketCode == '0' else self.QueryDateAh),
+            'queryDate': str(self.QueryDate if marketCode == '0' else self.QueryDateAh),
             'marketcode': 0
         }
 
@@ -93,20 +87,16 @@ class TWOptionParser():
 
 
         for com in res.json()['commodityList']:
-            self.Commodity = com['FDAILYR_KIND_ID']
-            self.Commodity2 = ''
-            self.getSettleMonth()
+            self.getSettleMonth(marketCode, com['FDAILYR_KIND_ID'], '')
 
         for com in res.json()['commodity2List']:
-            self.Commodity = 'STO'
-            self.Commodity2 = com['FDAILYR_KIND_ID']
-            self.getSettleMonth()
+            self.getSettleMonth(marketCode, 'STO', com['FDAILYR_KIND_ID'])
 
-    def getSettleMonth(self):
+    def getSettleMonth(self, marketCode, commodity, commodity2):
         payload = {
-            'queryDate': str(self.QueryDate if self.MarketCode == '1' else self.QueryDateAh),
+            'queryDate': str(self.QueryDate if marketCode == '0' else self.QueryDateAh),
             'marketcode': 0,
-            'commodityId': self.Commodity2 if self.Commodity == 'STO' else self.Commodity
+            'commodityId': commodity2 if commodity == 'STO' else commodity
         }
 
         res = self.session.get('http://www.taifex.com.tw/cht/3/getFcmOptSetMonth.do', params=payload, headers=self.header)
@@ -115,16 +105,15 @@ class TWOptionParser():
             raise Exception("Get Settle Month Failed")
 
         for setMon in res.json()['setMonList']:
-            self.SettleMonth = setMon['FDAILYR_SETTLE_MONTH']
-            self.getType()
+            self.getType(marketCode, commodity, commodity2, setMon['FDAILYR_SETTLE_MONTH'])
 
 
-    def getType(self):
+    def getType(self, marketCode, commodity, commodity2, setMon):
         payload = {
-            'queryDate': str(self.QueryDate if self.MarketCode == '1' else self.QueryDateAh),
+            'queryDate': str(self.QueryDate if marketCode == '0' else self.QueryDateAh),
             'marketcode': 0,
-            'commodityId': self.Commodity2 if self.Commodity == 'STO' else self.Commodity,
-            'settlemon': str(self.SettleMonth)
+            'commodityId': commodity if commodity == 'STO' else commodity,
+            'settlemon': str(setMon)
         }
         res = self.session.get('http://www.taifex.com.tw/cht/3/getFcmOptionsType.do', params=payload, headers=self.header)
         
@@ -132,9 +121,8 @@ class TWOptionParser():
             raise Exception("Get Type Failed")
         
         for typeId in res.json()['typeList']:            
-            self.Type = typeId['FDAILYR_PC_CODE']
-            self.postDailyOption()
-            self.postDownloadCsv()
+            self.postDailyOption(marketCode, commodity, commodity2, setMon, typeId['FDAILYR_PC_CODE'])
+            self.postDownloadCsv(marketCode, commodity, commodity2, setMon, typeId['FDAILYR_PC_CODE'])
 
     def getCaptcha(self):
         res = self.session.get('http://www.taifex.com.tw/cht/captcha', stream=True, headers=self.header)
@@ -156,22 +144,22 @@ class TWOptionParser():
     def resolveCaptcha(self, imagePathStr):
         return self.solver.solve(imagePathStr)
 
-    def postDailyOption(self):
+    def postDailyOption(self, marketCode, commodity, commodity2, setMon, pcCode):
         payload = {
             'captcha': str(self.Captcha),
-            'commodity_id2t': str(self.Commodity2),
-            'commodity_idt': str(self.Commodity),
-            'commodityId': str(self.Commodity),
-            'commodityId2': str(self.Commodity2),
+            'commodity_id2t': str(commodity2),
+            'commodity_idt': str(commodity),
+            'commodityId': str(commodity),
+            'commodityId2': str(commodity2),
             'curpage': '',
             'doQuery': '1',
             'doQueryPage': '',
-            'marketcode': str(self.MarketCode),
-            'MarketCode': str(self.MarketCode),
-            'pccode': str(self.Type),
+            'marketcode': str(marketCode),
+            'MarketCode': str(marketCode),
+            'pccode': str(pcCode),
             'queryDate': str(self.QueryDate),
             'queryDateAh': str(self.QueryDateAh),
-            'settlemon': str(self.SettleMonth),
+            'settlemon': str(setMon),
             'totalpage': ''
         }
 
@@ -180,23 +168,23 @@ class TWOptionParser():
         if res.status_code != requests.codes.ok:
             raise Exception("Post Option Failed")
 
-    def postDownloadCsv(self):
+    def postDownloadCsv(self, marketCode, commodity, commodity2, setMon, pcCode):
         print('.', end='')
         payload = {
             'captcha': '',
-            'commodity_id2t': str(self.Commodity2),
-            'commodity_idt': str(self.Commodity),
-            'commodityId': str(self.Commodity),
-            'commodityId2': str(self.Commodity2),
+           'commodity_id2t': str(commodity2),
+            'commodity_idt': str(commodity),
+            'commodityId': str(commodity),
+            'commodityId2': str(commodity2),
             'curpage': '1',
             'doQuery': '1',
             'doQueryPage': '',
-            'marketcode': str(self.MarketCode),
-            'MarketCode': str(self.MarketCode),
-            'pccode': str(self.Type),
+            'marketcode': str(marketCode),
+            'MarketCode': str(marketCode),
+            'pccode': str(pcCode),
             'queryDate': str(self.QueryDate),
             'queryDateAh': str(self.QueryDateAh),
-            'settlemon': str(self.SettleMonth),
+            'settlemon': str(setMon),
             'totalpage': ''
         }
 
@@ -206,7 +194,7 @@ class TWOptionParser():
             raise Exception("Post Download Failed")
 
         if res.headers.get('Content-Disposition') == None:
-            print('Download Failed', self.MarketCode, self.Commodity, self.Commodity2, self.SettleMonth, self.Type)
+            print('Download Failed', marketCode, commodity, commodity2, setMon, pcCode)
             return
 
         fileName = rfc6266.parse_requests_response(res).filename_unsafe
