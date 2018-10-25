@@ -13,7 +13,7 @@ import captchaSolver
 
 class TWOptionParser():
     
-    def __init__(self):
+    def __init__(self, solver):
         print('Parse TW Option')
         self.directory = './twoption/'
         self.TargetURL = 'http://www.taifex.com.tw/cht/3/dailyOptions'
@@ -26,7 +26,7 @@ class TWOptionParser():
         self.Captcha = ''
         self.QueryDate = ''
         self.QueryDateAh = ''
-        self.solver = captchaSolver.CaptchaSolver('Captcha_model.hdf5')
+        self.solver = solver
         self.createFolder()
 
     def createFolder(self):
@@ -42,7 +42,6 @@ class TWOptionParser():
         print("Elapsed time:", time.time() - start_time, "seconds")
 
     def getSession(self):
-        print('\tEstablish session')
         self.session = requests.session()
         self.header = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -138,7 +137,6 @@ class TWOptionParser():
             self.postDownloadCsv()
 
     def getCaptcha(self):
-        print('\tGet Captcha...')
         res = self.session.get('http://www.taifex.com.tw/cht/captcha', stream=True, headers=self.header)
 
         if res.status_code != requests.codes.ok:
@@ -152,7 +150,7 @@ class TWOptionParser():
         self.Captcha = self.resolveCaptcha(self.directory + 'Captcha.jpg')
         #img = cv2.imread('Captcha.jpg')
         #cv2.imshow('image', img)
-        # print(self.Captcha)    
+        print('Captcha: ', self.Captcha)    
         #os.remove('Captcha.jpg')
 
     def resolveCaptcha(self, imagePathStr):
@@ -183,7 +181,7 @@ class TWOptionParser():
             raise Exception("Post Option Failed")
 
     def postDownloadCsv(self):
-        print('\tStart Download...')
+	    print('.', end='')
         payload = {
             'captcha': '',
             'commodity_id2t': str(self.Commodity2),
@@ -208,7 +206,8 @@ class TWOptionParser():
             raise Exception("Post Download Failed")
 
         if res.headers.get('Content-Disposition') == None:
-            raise Exception("Download no content", self.Captcha)
+            print('Download Failed', self.MarketCode, self.Commodity, self.Commodity2, self.SettleMonth, self.Type)
+            return
 
         fileName = rfc6266.parse_requests_response(res).filename_unsafe
 
@@ -220,7 +219,7 @@ class TWOptionParser():
         print('=================================')
         
 def main():
-    parser = TWOptionParser()
+    parser = TWOptionParser(captchaSolver.CaptchaSolver('Captcha_model.hdf5'))
     parser.auto()
 
 if __name__ == '__main__':

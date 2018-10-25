@@ -174,7 +174,7 @@ class TWOptionParser():
         self.Captcha = self.resolveCaptcha('Captcha.jpg')
         #img = cv2.imread('Captcha.jpg')
         #cv2.imshow('image', img)
-        # print(self.Captcha)    
+        print('Captcha: ', self.Captcha)    
         #os.remove('Captcha.jpg')
 
     def resolveCaptcha(self, imagePathStr):
@@ -207,6 +207,7 @@ class TWOptionParser():
             raise Exception("Post Option Failed")
 
     def postDownloadCsv(self):
+	    print('.', end='')
         payload = {
             'captcha': '',
             'commodity_id2t': self.Commodity2,
@@ -231,7 +232,8 @@ class TWOptionParser():
             raise Exception("Post Download Failed")
 
         if res.headers.get('Content-Disposition') == None:
-            raise Exception("Download no content", self.Captcha)
+            print('Download Failed', self.MarketCode, self.Commodity, self.Commodity2, self.SettleMonth, self.Type)
+            return
 
         fileName = rfc6266.parse_requests_response(res).filename_unsafe
 
