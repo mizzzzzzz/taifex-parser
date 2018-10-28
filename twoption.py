@@ -76,7 +76,7 @@ class TWOptionParser():
 
     def getCommodityList(self, marketCode):
         payload = {
-            'queryDate': str(self.QueryDate if marketCode == '0' else self.QueryDateAh),
+            'queryDate': str(self.QueryDate if marketCode == 0 else self.QueryDateAh),
             'marketcode': 0
         }
 
@@ -94,7 +94,7 @@ class TWOptionParser():
 
     def getSettleMonth(self, marketCode, commodity, commodity2):
         payload = {
-            'queryDate': str(self.QueryDate if marketCode == '0' else self.QueryDateAh),
+            'queryDate': str(self.QueryDate if marketCode == 0 else self.QueryDateAh),
             'marketcode': 0,
             'commodityId': commodity2 if commodity == 'STO' else commodity
         }
@@ -110,7 +110,7 @@ class TWOptionParser():
 
     def getType(self, marketCode, commodity, commodity2, setMon):
         payload = {
-            'queryDate': str(self.QueryDate if marketCode == '0' else self.QueryDateAh),
+            'queryDate': str(self.QueryDate if marketCode == 0 else self.QueryDateAh),
             'marketcode': 0,
             'commodityId': commodity if commodity == 'STO' else commodity,
             'settlemon': str(setMon)

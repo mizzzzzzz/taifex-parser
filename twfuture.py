@@ -76,7 +76,7 @@ class TWFutureParser():
 
     def getCommodityList(self, marketCode):
         payload = {
-            'queryDate': str(self.QueryDate if marketCode == '0' else self.QueryDateAh),
+            'queryDate': str(self.QueryDate if marketCode == 0 else self.QueryDateAh),
             'marketcode': 0
         }
 
@@ -84,6 +84,7 @@ class TWFutureParser():
         
         if res.status_code != requests.codes.ok:
             raise Exception("Get Commodity List Failed")
+
 
         for com in res.json()['commodityList']:
             self.getSettleMonth(marketCode, com['FDAILYR_KIND_ID'], '')
@@ -93,7 +94,7 @@ class TWFutureParser():
 
     def getSettleMonth(self, marketCode, commodity, commodity2):
         payload = {
-            'queryDate': str(self.QueryDate if marketCode == '0' else self.QueryDateAh),
+            'queryDate': str(self.QueryDate if marketCode == 0 else self.QueryDateAh),
             'marketcode': 0,
             'commodityId': commodity2 if commodity == 'STO' else commodity
         }
