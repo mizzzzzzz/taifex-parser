@@ -87,7 +87,7 @@ class TWOptionParser():
 
 
         for com in res.json()['commodityList']:
-		    self.getSettleMonth(marketCode, com['FDAILYR_KIND_ID'], '')
+            self.getSettleMonth(marketCode, com['FDAILYR_KIND_ID'], '')
 
         for com in res.json()['commodity2List']:
             self.getSettleMonth(marketCode, 'STO', com['FDAILYR_KIND_ID'])
