@@ -87,7 +87,7 @@ class TWOptionParser():
 
 
         for com in res.json()['commodityList']:
-            self.getSettleMonth(marketCode, com['FDAILYR_KIND_ID'], '')
+		    self.getSettleMonth(marketCode, com['FDAILYR_KIND_ID'], '')
 
         for com in res.json()['commodity2List']:
             self.getSettleMonth(marketCode, 'STO', com['FDAILYR_KIND_ID'])
@@ -112,7 +112,7 @@ class TWOptionParser():
         payload = {
             'queryDate': str(self.QueryDate if marketCode == 0 else self.QueryDateAh),
             'marketcode': 0,
-            'commodityId': commodity if commodity == 'STO' else commodity,
+            'commodityId': commodity2 if commodity == 'STO' else commodity,
             'settlemon': str(setMon)
         }
         res = self.session.get('http://www.taifex.com.tw/cht/3/getFcmOptionsType.do', params=payload, headers=self.header)
@@ -120,7 +120,7 @@ class TWOptionParser():
         if res.status_code != requests.codes.ok:
             raise Exception("Get Type Failed")
         
-        for typeId in res.json()['typeList']:            
+        for typeId in res.json()['typeList']:
             self.postDailyOption(marketCode, commodity, commodity2, setMon, typeId['FDAILYR_PC_CODE'])
             self.postDownloadCsv(marketCode, commodity, commodity2, setMon, typeId['FDAILYR_PC_CODE'])
 
